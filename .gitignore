@@ -1,0 +1,20 @@
+*.pyc
+**/.DS_Store
+**/.vscode
+**/.idea
+**/data/IMG
+**/CourseMaterials
+##ignore Project-4 Data
+**/beta_simulator_windows/*
+**/CarND-Behavioral-Cloning/train_data/*
+**/run1/*
+**/run1/*
+**/run2/*
+**/events*
+**/build/*
+**/term2_sim_windows/*
+**/log/lr_1E-0*
+**/__pychace__/*
+Term1/Work/Lesson14/MNIST_data/*
+**/.ipynb_checkpoints/**
+Term1/Work/tf-dev-summit-tensorboard-tutorial/*

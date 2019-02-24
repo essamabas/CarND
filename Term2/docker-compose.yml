@@ -1,0 +1,7 @@
+version: "3"
+services:
+
+  myubuntu:
+    image: ubuntu:latest
+    volumes:
+    - "./CarNDKidnappedVehicleProject:/CarND"
