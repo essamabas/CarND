@@ -92,7 +92,6 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
     {
       particles[i].x += velocity * delta_t * cos( theta );
       particles[i].y += velocity * delta_t * sin( theta );
-      // yaw continue to be the same.
     } 
     else 
     {
@@ -120,8 +119,45 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
    *   during the updateWeights phase.
    */
 
+  /* cache Number of Observatios/ Predictions */
+  unsigned int nObservations = observations.size();
+  unsigned int nPredictions = predicted.size();
 
+  /* Loop for each Observation */
+  for (unsigned int i = 0; i < nObservations; i++) 
+  { 
+    /* Initialize min distance with the DBL_MAX. 
+    ** Ref: https://en.cppreference.com/w/cpp/types/numeric_limits
+    */
+    double minDistance = std::numeric_limits<double>::max();
+
+    /* Initialize the found map with negative index */
+    signed int mapId = -1;
+ 
+    /* Apply Nearst Neighbor Method */
+
+    /* Loop For each predition. */
+    for (unsigned j = 0; j < nPredictions; j++ ) 
+    {
+
+      double xDiff = observations[i].x - predicted[j].x;
+      double yDiff = observations[i].y - predicted[j].y;
+
+      double distance = xDiff * xDiff + yDiff * yDiff;
+
+      // If the "distance" is less than min, stored the id and update min.
+      if ( distance < minDistance ) 
+      {
+        minDistance = distance;
+        mapId = predicted[j].id;
+      }
+    }
+
+    /* Update the observation identifier.*/
+    observations[i].id = mapId;
+  }
 }
+
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
                                    const vector<LandmarkObs> &observations, 
@@ -139,7 +175,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   and the following is a good resource for the actual equation to implement
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
-
+  
 }
 
 void ParticleFilter::resample() {
