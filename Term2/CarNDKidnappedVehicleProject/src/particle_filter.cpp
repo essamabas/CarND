@@ -17,9 +17,11 @@
 #include <vector>
 
 #include "helper_functions.h"
-
+ 
 using std::string;
 using std::vector;
+using std::normal_distribution;
+std::default_random_engine gen;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
   /**
@@ -30,7 +32,37 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
    * NOTE: Consult particle_filter.h for more information about this method 
    *   (and others in this file).
    */
-  num_particles = 0;  // TODO: Set the number of particles
+  num_particles = 100;  // TODO: Set the number of particles
+
+
+  /* Create a normal (Gaussian) distribution for x,y,theta */
+  normal_distribution<double> dist_x(x, std[0]);
+  normal_distribution<double> dist_y(y, std[1]);
+  normal_distribution<double> dist_theta(theta, std[2]);
+
+  /* Init. Particles */
+  for (int i = 0; i < num_particles; ++i) 
+  {
+    /* Create a particle-instance */
+    Particle p;
+
+    p.id = i;
+    /* Sample from these normal distributions for x,y,theta
+    **   where "gen" is the random engine initialized earlier.
+    */
+    p.x = dist_x(gen);
+    p.y = dist_y(gen);
+    p.theta = dist_theta(gen);
+
+    /* initialize weight with 1. */
+    p.weight = 1.0;
+
+    /* Add to list of Particles-Filter */
+    particles.push_back(p);
+  }
+
+  /* Set initialized flag */
+  is_initialized = true;
 
 }
 
@@ -44,6 +76,37 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
    *  http://www.cplusplus.com/reference/random/default_random_engine/
    */
 
+  /* Create a normal (Gaussian) distribution for x,y,theta */
+  normal_distribution<double> dist_x(0, std_pos[0]);
+  normal_distribution<double> dist_y(0, std_pos[1]);
+  normal_distribution<double> dist_theta(0, std_pos[2]);
+
+  // Calculate new state.
+  for (int i = 0; i < num_particles; i++) 
+  {
+    /* cashe the theta value */
+    double theta = particles[i].theta;
+
+    /* if yaw is equal to zero - Use Equation from Chapter:Motion-Model - Section-4 */
+    if ( fabs(yaw_rate) < 0.00001 ) 
+    {
+      particles[i].x += velocity * delta_t * cos( theta );
+      particles[i].y += velocity * delta_t * sin( theta );
+      // yaw continue to be the same.
+    } 
+    else 
+    {
+      /* Yaw is greater than Zero - Use Equation from Chapter:Motion-Model - Section-4 */
+      particles[i].x += velocity / yaw_rate * ( sin( theta + yaw_rate * delta_t ) - sin( theta ) );
+      particles[i].y += velocity / yaw_rate * ( cos( theta ) - cos( theta + yaw_rate * delta_t ) );
+      particles[i].theta += yaw_rate * delta_t;
+    }
+
+    /* Add Prediction noise. */
+    particles[i].x += dist_x(gen);
+    particles[i].y += dist_y(gen);
+    particles[i].theta += dist_theta(gen);
+  }
 }
 
 void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted, 
@@ -56,6 +119,7 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
    *   probably find it useful to implement this method and use it as a helper 
    *   during the updateWeights phase.
    */
+
 
 }
 
