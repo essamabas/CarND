@@ -148,7 +148,7 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
       // If the "distance" is less than min, stored the id and update min.
       if ( diff < minDistance ) 
       {
-        minDistance = distance;
+        minDistance = diff;
         mapId = predicted[j].id;
       }
     }
@@ -177,12 +177,10 @@ double ParticleFilter::multiv_prob(double sig_x, double sig_y, double x_obs, dou
 }
 
 /* Transform Observation to Map-Coordinates - X/Y Observation in Car-Coordinates - X/Y/Theta Particle Position in Map-Coordinates*/
-void ParticleFilter::transformToMapCoordinates(double x_obs, double y_obs, 
+void ParticleFilter::transformObservationsToMapCoordinates(double x_obs, double y_obs, 
                                                           double x_part, double y_part, double theta,
                                                           double *x_map, double *y_map)
 {
-  double theta = -M_PI/2; // -90 degrees
-
   // transform to map x coordinate
   *x_map = x_part + (cos(theta) * x_obs) - (sin(theta) * y_obs);
 
@@ -190,7 +188,35 @@ void ParticleFilter::transformToMapCoordinates(double x_obs, double y_obs,
   *y_map = y_part + (sin(theta) * x_obs) + (cos(theta) * y_obs);
 }
 
+vector<LandmarkObs> ParticleFilter::getLandmarksWithinSensorRange(double x_part, double y_part,
+                                                double sensor_range,
+                                                const Map &map_landmarks)
+{
+  /* Return Landmarkes within Found-Particles - sensor_range 
+  ** x_part/ y_part: are position of the particle
+  ** 
+  */
 
+  vector<LandmarkObs> Landmarks;
+
+    /*Loop to all Landmarks*/
+    for(unsigned int i = 0; i < map_landmarks.landmark_list.size(); i++) 
+    {
+      float lx = map_landmarks.landmark_list[i].x_f;
+      float ly = map_landmarks.landmark_list[i].y_f;
+      int id = map_landmarks.landmark_list[i].id_i;
+      double dX = x_part - lx;
+      double dY = y_part - ly;
+      
+      //Check that landmark is within particle sensor_range
+      if ( sqrt(dX*dX + dY*dY) <= sensor_range ) 
+      {
+        Landmarks.push_back(LandmarkObs{ id, lx, ly });
+      }
+    }
+
+  return Landmarks;
+}
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
                                    const vector<LandmarkObs> &observations, 
@@ -211,20 +237,27 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
  
   // Iterate through each particle
   for (int i = 0; i < num_particles; ++i) 
-  {   
+  {  
+     vector<LandmarkObs> withinRangeLandmarks;
+     // Filter Landmarks within Sensor-Range
+     withinRangeLandmarks = getLandmarksWithinSensorRange(particles[i].x, particles[i].y,
+                                   sensor_range, map_landmarks);
+
      // For each observation
      vector<LandmarkObs> mappedObservations;
-     for (int j = 0; j < observations.size(); ++j) 
+     for (unsigned int j = 0; j < observations.size(); ++j) 
      {
+       double trans_obs_x, trans_obs_y;
        // Transform the observation point (from vehicle coordinates to map coordinates)
-       transformToMapCoordinates(observations[j].x, observations[j].y, 
-                   particles[i].x, particles[i].y, particles[i].theta,
-                  trans_obs_x, trans_obs_y);
-      mappedObservations.push_back(LandmarkObs{ observations[j].id, trans_obs_x, trans_obs_y });
+       transformObservationsToMapCoordinates(
+                  observations[j].x, observations[j].y, 
+                  particles[i].x, particles[i].y, particles[i].theta,
+                  &trans_obs_x, &trans_obs_y);
+       mappedObservations.push_back(LandmarkObs{ observations[j].id, trans_obs_x, trans_obs_y });
      }
    
      // Find nearest landmark
-     dataAssociation(inRangeLandmarks, mappedObservations);
+     dataAssociation(withinRangeLandmarks, mappedObservations);
    
       
      

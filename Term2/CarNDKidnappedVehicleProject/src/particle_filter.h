@@ -103,6 +103,27 @@ class ParticleFilter {
   }
 
   /**
+   * Transform Observation to Map-Coordinates 
+   *   of the observed measurements. 
+   * @param x_obs observation x-position in car coordinates
+   * @param y_obs observation y-position in car coordinates
+   * @param x_part particle x-position in map coordinates
+   * @param y_part particle y-position in map coordinates
+   * @param theta particle theta in map coordinates
+   * @param x_map pointer of the returned mapped x-Position
+   * @param y_map pointer of the returned mapped y-Position
+   */
+  void transformObservationsToMapCoordinates(double x_obs, double y_obs,
+                                             double x_part, double y_part, double theta,
+                                             double *x_map, double *y_map);
+
+  double multiv_prob(double sig_x, double sig_y, double x_obs, double y_obs,
+                   double mu_x, double mu_y);
+  
+  std::vector<LandmarkObs> getLandmarksWithinSensorRange(double x_part, double y_part,
+                                                double sensor_range,
+                                                const Map &map_landmarks);
+  /**
    * Used for obtaining debugging information related to particles.
    */
   std::string getAssociations(Particle best);
