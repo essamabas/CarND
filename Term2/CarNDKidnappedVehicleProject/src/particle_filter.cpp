@@ -131,8 +131,9 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
     */
     double minDistance = std::numeric_limits<double>::max();
 
-    /* Initialize the found map with negative index */
+    /* Initialize the found map with negative id */
     signed int mapId = -1;
+    signed int mapIdx = -1;
  
     /* Apply Nearst Neighbor Method */
 
@@ -150,11 +151,13 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
       {
         minDistance = diff;
         mapId = predicted[j].id;
+        mapIdx = j;
       }
     }
 
     /* Update the observation identifier.*/
     observations[i].id = mapId;
+    observations[i].idx = mapIdx;
   }
 }
 
@@ -198,6 +201,7 @@ vector<LandmarkObs> ParticleFilter::getLandmarksWithinSensorRange(double x_part,
   */
 
   vector<LandmarkObs> Landmarks;
+  int j=0;
 
     /*Loop to all Landmarks*/
     for(unsigned int i = 0; i < map_landmarks.landmark_list.size(); i++) 
@@ -211,7 +215,8 @@ vector<LandmarkObs> ParticleFilter::getLandmarksWithinSensorRange(double x_part,
       //Check that landmark is within particle sensor_range
       if ( sqrt(dX*dX + dY*dY) <= sensor_range ) 
       {
-        Landmarks.push_back(LandmarkObs{ id, lx, ly });
+        Landmarks.push_back(LandmarkObs{ id, j, lx, ly });
+        j++;
       }
     }
 
@@ -238,28 +243,44 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   // Iterate through each particle
   for (int i = 0; i < num_particles; ++i) 
   {  
-     vector<LandmarkObs> withinRangeLandmarks;
      // Filter Landmarks within Sensor-Range
+     vector<LandmarkObs> withinRangeLandmarks;
      withinRangeLandmarks = getLandmarksWithinSensorRange(particles[i].x, particles[i].y,
                                    sensor_range, map_landmarks);
 
-     // For each observation
+     // Map observations to Map-Coordinates
      vector<LandmarkObs> mappedObservations;
      for (unsigned int j = 0; j < observations.size(); ++j) 
      {
        double trans_obs_x, trans_obs_y;
+
        // Transform the observation point (from vehicle coordinates to map coordinates)
        transformObservationsToMapCoordinates(
                   observations[j].x, observations[j].y, 
                   particles[i].x, particles[i].y, particles[i].theta,
                   &trans_obs_x, &trans_obs_y);
-       mappedObservations.push_back(LandmarkObs{ observations[j].id, trans_obs_x, trans_obs_y });
+       mappedObservations.push_back(LandmarkObs{ observations[j].id, -1, trans_obs_x, trans_obs_y });
      }
    
      // Find nearest landmark
      dataAssociation(withinRangeLandmarks, mappedObservations);
-   
-      
+
+     //calculate particle weights
+     double weight = 1;
+     for (unsigned int j = 0; j < mappedObservations.size(); ++j) 
+     {
+        int tmp_idx = mappedObservations[j].idx;
+        /* check that landmark is found near observation */
+        if( tmp_idx > -1)
+        {
+          // calculate particle-weight
+          weight *= multiv_prob(std_landmark[0], std_landmark[1], mappedObservations[j].x, mappedObservations[j].y,
+                               withinRangeLandmarks[tmp_idx].x, withinRangeLandmarks[tmp_idx].y); 
+        }
+     }
+     // store weight
+     particles[i].weight *= weight;
+     weights[i] = weight;
      
     }
   
@@ -268,11 +289,20 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 void ParticleFilter::resample() {
   /**
    * TODO: Resample particles with replacement with probability proportional 
-   *   to their weight. 
+   *   to their weight. d
    * NOTE: You may find std::discrete_distribution helpful here.
    *   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
    */
 
+	std::discrete_distribution<int> d(weights.begin(), weights.end());
+	std::vector<Particle> weighted_sample(num_particles);
+
+	for(int i = 0; i < num_particles; ++i){
+		int j = d(gen);
+		weighted_sample.at(i) = particles.at(j);
+	}
+
+	particles = weighted_sample;
 }
 
 void ParticleFilter::SetAssociations(Particle& particle, 
