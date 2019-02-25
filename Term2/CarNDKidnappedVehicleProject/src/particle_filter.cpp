@@ -143,10 +143,10 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
       double xDiff = observations[i].x - predicted[j].x;
       double yDiff = observations[i].y - predicted[j].y;
 
-      double distance = xDiff * xDiff + yDiff * yDiff;
+      double diff = xDiff * xDiff + yDiff * yDiff;
 
       // If the "distance" is less than min, stored the id and update min.
-      if ( distance < minDistance ) 
+      if ( diff < minDistance ) 
       {
         minDistance = distance;
         mapId = predicted[j].id;
@@ -157,6 +157,39 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
     observations[i].id = mapId;
   }
 }
+
+double ParticleFilter::multiv_prob(double sig_x, double sig_y, double x_obs, double y_obs,
+                   double mu_x, double mu_y) {
+  // calculate normalization term
+  double gauss_norm;
+  gauss_norm = 1 / (2 * M_PI * sig_x * sig_y);
+
+  // calculate exponent
+  double exponent;
+  exponent = (pow(x_obs - mu_x, 2) / (2 * pow(sig_x, 2)))
+               + (pow(y_obs - mu_y, 2) / (2 * pow(sig_y, 2)));
+    
+  // calculate weight using normalization terms and exponent
+  double weight;
+  weight = gauss_norm * exp(-exponent);
+    
+  return weight;
+}
+
+/* Transform Observation to Map-Coordinates - X/Y Observation in Car-Coordinates - X/Y/Theta Particle Position in Map-Coordinates*/
+void ParticleFilter::transformToMapCoordinates(double x_obs, double y_obs, 
+                                                          double x_part, double y_part, double theta,
+                                                          double *x_map, double *y_map)
+{
+  double theta = -M_PI/2; // -90 degrees
+
+  // transform to map x coordinate
+  *x_map = x_part + (cos(theta) * x_obs) - (sin(theta) * y_obs);
+
+  // transform to map y coordinate
+  *y_map = y_part + (sin(theta) * x_obs) + (cos(theta) * y_obs);
+}
+
 
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
@@ -175,6 +208,27 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   and the following is a good resource for the actual equation to implement
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
+ 
+  // Iterate through each particle
+  for (int i = 0; i < num_particles; ++i) 
+  {   
+     // For each observation
+     vector<LandmarkObs> mappedObservations;
+     for (int j = 0; j < observations.size(); ++j) 
+     {
+       // Transform the observation point (from vehicle coordinates to map coordinates)
+       transformToMapCoordinates(observations[j].x, observations[j].y, 
+                   particles[i].x, particles[i].y, particles[i].theta,
+                  trans_obs_x, trans_obs_y);
+      mappedObservations.push_back(LandmarkObs{ observations[j].id, trans_obs_x, trans_obs_y });
+     }
+   
+     // Find nearest landmark
+     dataAssociation(inRangeLandmarks, mappedObservations);
+   
+      
+     
+    }
   
 }
 
