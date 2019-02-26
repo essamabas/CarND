@@ -59,10 +59,13 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
     /* Add to list of Particles-Filter */
     particles.push_back(p);
+    weights.push_back(p.weight);
   }
 
   /* Set initialized flag */
   is_initialized = true;
+
+  std::cout << "Particles are initialized"<< std::endl;
 
 }
 
@@ -106,6 +109,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
     particles[i].y += dist_y(gen);
     particles[i].theta += dist_theta(gen);
   }
+  std::cout << "Particles are predicted"<< std::endl;
 }
 
 void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted, 
