@@ -106,170 +106,82 @@ int main() {
             car_s = end_path_s;
           } 
 
-          // Prediction : Analysing other cars positions.
-          bool car_ahead_in_guard_distance = false;
-          bool car_ahead_in_safety_distance = false;
-          bool car_left_in_guard_distance = false;
-          bool car_left_in_safety_distance = false;
-          bool car_right_in_guard_distance = false;
-          bool car_right_in_safety_distance = false;
-          double distance_to_current_lane_closest_ahead = 9999;
-          double distance_to_left_lane_closest_ahead = 9999;
-          double distance_to_right_lane_closest_ahead = 9999;
-          double speed_current_lane = -1;
-          double speed_left_lane = -1;
-          double speed_right_lane = -1;
+            // Prediction : Analysing other cars positions.
+            bool car_ahead = false;
+            bool car_left = false;
+            bool car_right = false;
+            double avg_speed_right = 0;
+            double avg_speed_left = 0;
+            for ( int i = 0; i < sensor_fusion.size(); i++ ) {
+                float d = sensor_fusion[i][6];
+                int car_lane = -1;
+                // is it on the same lane we are
+                if ( d > 0 && d < 4 ) {
+                  car_lane = 0;
+                } else if ( d > 4 && d < 8 ) {
+                  car_lane = 1;
+                } else if ( d > 8 && d < 12 ) {
+                  car_lane = 2;
+                }
+                if (car_lane < 0) {
+                  continue;
+                }
+                // Find car speed.
+                double vx = sensor_fusion[i][3];
+                double vy = sensor_fusion[i][4];
+                double check_speed = sqrt(vx*vx + vy*vy);
+                double check_car_s = sensor_fusion[i][5];
+                // Estimate car s position after executing previous trajectory.
+                check_car_s += ((double)prev_size*0.02*check_speed);
 
-          for ( int i = 0; i < sensor_fusion.size(); i++ ) {
-              float d = sensor_fusion[i][6];
-              int car_lane = -1;
-              // is it on the same lane we are
-              if ( d > 0 && d < 4 ) {
-                car_lane = 0;
-              } else if ( d > 4 && d < 8 ) {
-                car_lane = 1;
-              } else if ( d > 8 && d < 12 ) {
-                car_lane = 2;
-              }
-              if (car_lane < 0) {
-                continue;
-              }
-              // Find car speed.
-              double vx = sensor_fusion[i][3];
-              double vy = sensor_fusion[i][4];
-              double check_speed = sqrt(vx*vx + vy*vy);
-              double check_car_s = sensor_fusion[i][5];
-              // Estimate car s position after executing previous trajectory.
-              check_car_s += ((double)prev_size*0.02*check_speed);
-
-              double distance = check_car_s - car_s;
-
-              if ( car_lane == lane ) {
-                // Car in our lane.
-                if(check_car_s > car_s) {
-                  if(distance < GUARD_DISTANCE) {
-                    car_ahead_in_guard_distance = true;
-                  } else if ( distance < SAFETY_DISTANCE) {
-                    car_ahead_in_safety_distance = true;
-
-                    //We want to pick speed of the closest car in the lane.
-                    if(distance < distance_to_current_lane_closest_ahead) {
-                      distance_to_current_lane_closest_ahead = distance;
-                      speed_current_lane = check_speed/1.6*3600/1000;
-                    }
+                if ( car_lane == lane ) {
+                  // Car in our lane.
+                  car_ahead |= check_car_s > car_s && check_car_s - car_s < 30;
+                } else if ( car_lane - lane == -1 ) {
+                  // Car left
+                  car_left |= car_s - 30 < check_car_s && car_s + 30 > check_car_s;
+                  // Calculate avg-Left Lane Speed
+                  if(avg_speed_left ==0){
+                    avg_speed_left = check_speed;
+                  }else{
+                    avg_speed_left = (avg_speed_left + check_speed)/2;
+                  }
+                } else if ( car_lane - lane == 1 ) {
+                  // Car right
+                  car_right |= car_s - 30 < check_car_s && car_s + 30 > check_car_s;
+                  // Calculate avg-Right Lane Speed
+                  if(avg_speed_right ==0){
+                    avg_speed_right = check_speed;
+                  }else{
+                    avg_speed_right = (avg_speed_right + check_speed)/2;
                   }
                 }
-
-              } else if ( car_lane - lane == -1 ) {
-                // Car left
-                if(car_s - GUARD_DISTANCE < check_car_s && car_s + GUARD_DISTANCE > check_car_s) {
-                  car_left_in_guard_distance = true;
-                } else if(check_car_s > car_s && distance < SAFETY_DISTANCE) {
-                  car_left_in_safety_distance = true;
-
-                  //We want to pick speed of the closest car in the lane.
-                  if(distance < distance_to_left_lane_closest_ahead) {
-                    distance_to_left_lane_closest_ahead = distance;
-                    speed_left_lane = check_speed/1.6*3600/1000;
-                  }
-                }
-              } else if ( car_lane - lane == 1 ) {
-                // Car right
-                if(car_s - GUARD_DISTANCE < check_car_s && car_s + GUARD_DISTANCE > check_car_s){
-                  car_right_in_guard_distance = true;
-                } else if(check_car_s > car_s && distance < SAFETY_DISTANCE) {
-                  car_right_in_safety_distance = true;
-
-                  //We want to pick speed of the closest car in the lane.
-                  if(distance < distance_to_right_lane_closest_ahead) {
-                    distance_to_right_lane_closest_ahead = distance;
-                    speed_right_lane = check_speed/1.6*3600/1000;
-                  }
-                }
-              }
-          }
-
-          //Cost
-          double cost_keep_lane;
-          if(car_ahead_in_guard_distance) {
-            //We set this cost to 0.9 for the case of no choise.(say, default behaviour.)
-            cost_keep_lane = 0.9;
-          } else if (car_ahead_in_safety_distance){
-            //If car ahead of us in current lane is in safety distance, we increase cost because we have to run slower.
-            cost_keep_lane = 1 - (MAX_SPEED - speed_current_lane)/MAX_SPEED;
-          } else {
-            if(lane == 1) {
-              //If we are running on center lane and no car ahead of us, that's great!
-              cost_keep_lane = 0;
-            } else {
-              //If no cars are ahead of us but running other than center lane, we might want to go back to center lane.
-              cost_keep_lane = 0.1;
             }
-          }
 
-          double cost_change_left;
-          if(car_left_in_guard_distance) {
-            //If car ahead of us in left lane is in guard distance, we set cost to 1 to avoid collision.
-            cost_change_left = 1;
-          } else if(lane == 0) {
-            //If we are running on the lane left end, we set cost to 1 to avoid course out.
-            cost_change_left = 1;
-          } else if(car_left_in_safety_distance) {
-            //If car ahead of us in left lane is in safety distance, we increase cost because we have to run slower.
-            cost_change_left = 1 - (MAX_SPEED - speed_left_lane)/MAX_SPEED;
-          } else {
-            if(lane == 2) {
-              //Return to center lane.
-              cost_change_left = 0;
-            } else {
-              //We choose change left rather than right, if conditions are totally even.
-              cost_change_left = 0.2;
-            }
-          }
-
-          double cost_change_right;
-          if(car_right_in_guard_distance) {
-            //If car ahead of us in right lane is in guard distance, we set cost to 1 to avoid collision.
-            cost_change_right = 1;
-          } else if(lane == 2) {
-            //If we are running on the lane right end, we set cost to 1 to avoid course out.
-            cost_change_right = 1;
-          } else if(car_right_in_safety_distance) {
-            //If car ahead of us in right lane is in safety distance, we increase cost because we have to run slower.
-            cost_change_right = 1 - (MAX_SPEED - speed_right_lane)/MAX_SPEED;
-          } else {
-            if(lane == 0) {
-              //Return to center lane.
-              cost_change_right = 0;
-            } else {
-              //We choose change left rather than right, if conditions are totally even.
-              cost_change_right = 0.3;
-            }
-          }
-
-          std::cout << "Costs - KL:" << cost_keep_lane << " CL:" << cost_change_left << " CR:" << cost_change_right << std::endl;
-
-          // Behavior : Let's see what to do.
-          if( cost_keep_lane < cost_change_left && cost_keep_lane < cost_change_right) {
-            if ( car_ahead_in_guard_distance ) {
-              ref_vel -= MAX_ACC;
-            } else if ( car_ahead_in_safety_distance ) {
-              if(ref_vel < speed_current_lane) {
-                ref_vel += MAX_ACC;
+            // Behavior-Planning - Choose Lane
+            if ( car_ahead ) { // Car ahead
+              if ( !car_left && lane > 0 ) {
+                // if there is no car left and there is a left lane.
+                lane--; // Change lane left.
+              } else if ( !car_right && lane != 2 ){
+                // if there is no car right and there is a right lane.
+                lane++; // Change lane right.
               } else {
                 ref_vel -= MAX_ACC;
               }
             } else {
-              if(ref_vel < MAX_SPEED ) {
+              if ( lane != 1 ) { // if we are not on the center lane.
+                if ( ( lane == 0 && !car_right ) || ( lane == 2 && !car_left ) ) {
+                  lane = 1; // Back to center.
+                }
+              }
+              if ( ref_vel < MAX_SPEED ) {
                 ref_vel += MAX_ACC;
               }
             }
-          } else if (cost_change_left < cost_keep_lane && cost_change_left < cost_change_right) {
-            lane--;
-          } else if (cost_change_right < cost_keep_lane && cost_change_right < cost_change_left) {
-            lane++;
-          }
-
+          //avoid negative ref_vel
+          ref_vel = (ref_vel < 0) ? 0 : ref_vel;
+          
           // Create a list of widely scoped (x,y) waypoints, evenly spaced at 30m
           // Later we will interoplate these waypoints with a spline and fill it in with more points.
           vector<double> ptsx;
@@ -369,7 +281,9 @@ int main() {
           // so, if we traveled 3-Points, only 3-Points will be appended to the previous_path
           for (int i = 1; i <= 50-previous_path_x.size(); i++)
           {
-            //convert velocity from mph to m/s
+            // Formula: N*0.02*ref_vel = dist - that means that the car will visit the second point in 0.02 seconds 
+            //          and by setting ref_vel - we will get the N-Points we need to generate to drive distance(dist)
+            // ref_vel/2.24 - to convert velocity from mph to m/s
             // calculate N-Number of Points 
             double N = (target_dist/(.02*ref_vel/2.24));
             double x_point = x_add_on + (target_x)/N;
@@ -402,7 +316,7 @@ int main() {
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }  // end "telemetry" if
       } else {
-        // Manual driving
+        // Autonomous driving
         std::string msg = "42[\"manual\",{}]";
         ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
       }
