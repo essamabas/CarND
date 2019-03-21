@@ -143,3 +143,52 @@ still be compilable with cmake and make./
 ## How to write a README
 A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
 
+
+---
+
+
+
+# [Rubic](https://review.udacity.com/#!/rubrics/1971/view) points
+
+## Criteria
+
+1. **The code compiles correctly.**
+
+    In order to build the project, the following sequence of commands shall be run.
+
+    ```
+    > mkdir build
+    > cd build
+    > cmake ..
+    > make
+    ```
+
+    The project could be executed directly using `./build/path_planning`
+
+    ```
+    > cd build
+    > ./path_planning
+    Listening to port 4567
+    ```
+    The output:
+    ```
+    root@84a1dfe7918f:/Term2/CarNDPathPlanningProject/build# make
+    Scanning dependencies of target path_planning
+    [ 50%] Building CXX object CMakeFiles/path_planning.dir/src/main.cpp.o
+    [100%] Linking CXX executable path_planning
+    [100%] Built target path_planning
+    root@84a1dfe7918f:/Term2/CarNDPathPlanningProject/build# ./path_planning
+    Listening to port 4567
+    Connected!!!
+    ```
+
+## Valid Trajectories
+
+1. **The car is able to drive at least 4.32 miles without incident**
+
+    The Algoirthms was tested above the 4.32 miles criteria and no incidents occured.
+    ![No incidents](img/car1.png)
+
+2. **The car drives according to the speed limit.**
+
+    The speed limit 
