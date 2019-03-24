@@ -16,8 +16,6 @@ using std::vector;
 
 const double MAX_SPEED = 49.5;
 const double MAX_ACC = .224;
-const double SAFETY_DISTANCE = 50;
-const double GUARD_DISTANCE = 30;
 
 int main() {
   uWS::Hub h;
@@ -250,7 +248,7 @@ int main() {
             ptsy[i] = (shift_x *sin(0-ref_yaw)+shift_y*cos(0-ref_yaw));
           }
 
-          // craete a spline
+          // create a spline
           tk::spline s;
 
           // set (x,y) points to the spline

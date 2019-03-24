@@ -191,4 +191,66 @@ A well written README file can enhance your project and portfolio.  Develop your
 
 2. **The car drives according to the speed limit.**
 
-    The speed limit 
+    The speed limit was held at 49.5 mph.
+    ```
+    const double MAX_SPEED = 49.5;
+    ```
+
+3. ** Max Acceleration and Jerk are not Exceeded **
+    
+    The increase of speed was limited  was held at 49.5 mph.
+    ```
+    const double MAX_SPEED = 49.5;
+    ```
+
+4. **Car does not have collisions.**
+    
+    The car did not have any collisions for the miles covered by the Test. Safe-Distance was kept to the leading-Car, and Lane-Change was probihibted, if nearby car was found in the Target-Lane.
+    Refer to Behaviour-Planning Flow-Chart.
+
+    ![No incidents2](img/car2.png)
+
+5. **The car stays in its lane, except for the time between changing lanes.**
+    
+    The Following represents the Logic implemented in the Code. [main.cpp - lines 135-181]
+    ![BehaviorPlanning](img/BehaviorPlanning.png)
+
+6. **The car is able to change lanes**
+    
+    According to the previous mentioned Flow-Chart. The Car is triggerd to change lanes, if there is car ahead and there is safe-distance to other cars in the target lane.
+
+
+## Reflection
+
+1. **There is a reflection on how to generate paths.**
+
+    as discussed in the [Project Walkthrough](https://www.youtube.com/watch?v=7sI3VHFPP0w). Trajectory need not to be generated from scrath with every cycle, rather it can appended to.
+    So I defined:
+    ```
+    previous_path_x, previous_path_y 
+    ``` 
+    
+    1. If the previous_path is empty - then i added current-position and the previous one - tangent to the car current direction. [main.cpp - lines: 197-199]
+    ```
+    double prev_car_x = car_x - cos(car_yaw);
+    double prev_car_y = car_y - sin(car_yaw);
+    ```
+    otherwise, last point in previous_path is used as the reference-point.
+
+    2. I generate evenly distenced Points at 30,60,90m - located at the target lane.[main.cpp - lines: 228-231]
+    
+        *Note: lane* represents the target lane and the pointed will be located on it.  
+    ```
+    vector<double> next_wp0 = getXY(car_s+30,(2+4*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
+    vector<double> next_wp1 = getXY(car_s+60,(2+4*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
+    vector<double> next_wp2 = getXY(car_s+90,(2+4*lane),map_waypoints_s,map_waypoints_x,map_waypoints_y);
+    ```
+    3. The points are fitted with a Spline. [main.cpp - line: 255]
+    
+    4. The remaining points from previous path was pushed [main.cpp - lines: 262-265]
+
+    5. A horizon-point is defined at 30m., so based on the ref_vel, the number of points can be extracted - given that every 0.02 second the car visit this point.
+
+        *Nx0.02xref_vel = 30m* [main.cpp - lines: ]
+
+    ![TrajectoryGeneration](img/TrajectoryGeneration.png)
