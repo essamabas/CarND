@@ -46,9 +46,9 @@ double PID::TotalError() {
   /**
    * TODO: Calculate and return the total error
    */
-  double steer = (this->p_error * this->Kp) + 
+  double steer = -1* ((this->p_error * this->Kp) + 
          (this->i_error * this->Ki) + 
-         (this->d_error * this->Kd);  // TODO: Add your total error calc here!
+         (this->d_error * this->Kd));  // TODO: Add your total error calc here!
   if (steer < -1) {
     steer = -1;
   }
