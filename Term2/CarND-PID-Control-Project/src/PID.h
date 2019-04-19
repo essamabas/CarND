@@ -31,6 +31,11 @@ class PID {
    */
   double TotalError();
 
+  /*
+  * Twiddle or vanilla gradient descent for tuning one hyper parameter at a time
+  */
+  void Twiddle(double error);
+  
  private:
   /**
    * PID Errors
@@ -50,10 +55,15 @@ class PID {
    */ 
   double prev_cte;
 
-  /*
-  * Twiddle or vanilla gradient descent for tuning one hyper parameter at a time
-  */
-  void Twiddle(double total_error, double hyperparameter);
+  /**
+   * Twiddle Coefficients
+   */
+  double d_Kp;
+  double d_Kd;
+  double d_Ki;
+  double best_err;
+
+
 
 };
 

@@ -1,6 +1,6 @@
 #include "PID.h"
 #include <iostream>
-
+#include <numeric>
 
 /**
  * TODO: Complete the PID class. You may add any additional desired functions.
@@ -21,6 +21,12 @@ void PID::Init(double Kp_, double Ki_, double Kd_) {
   this->p_error = 0.0;
   this->i_error = 0.0;
   this->d_error = 0.0;
+
+  //twiddle delta coefficents
+  this->d_Kp = 1;
+  this->d_Kd = 1;
+  this->d_Ki = 1;
+  this->best_err = 10000;
 
   // Previous cte.
   this->prev_cte = 0.0;
@@ -56,6 +62,58 @@ double PID::TotalError() {
     steer = 1;
   }
   return steer;
+}
+
+int arraySum(double a[], int n)  
+{ 
+    double initial_sum  = 0;  
+    return std::accumulate(a, a+n, initial_sum); 
+} 
+
+
+void PID::Twiddle(double err) {
+
+  //Choose an initialization parameter vector
+  double p[3] = {this->Kp, this->Kd, this->Ki};
+  //Define potential changes
+  double dp[3] = {this->d_Kp, this->d_Kd, this->d_Ki};
+
+  double threshold = 0.001;
+
+  std::cout<<"arraySum(dp , 3) ="<< arraySum(dp , 3) << std::endl;
+  if (arraySum(dp , 3) > threshold)
+  {
+    for (int i = 0; i < 3; i++ ) {
+          p[i] += dp[i];
+
+          if(err < best_err){  //There was some improvement
+              best_err = err;
+              dp[i] *= 1.05;
+          } else {  // There was no improvement
+              p[i] -= 2*dp[i];  //Go into the other direction
+
+              if (err < best_err){  //There was an improvement
+                  best_err = err;
+                  dp[i] *= 1.05;
+              }else{  // There was no improvement
+                  p[i] += dp[i];
+                  //As there was no improvement, the step size in either
+                  //direction, the step size might simply be too big.
+                  dp[i] *= 0.95;
+              }
+            }
+      }
+      //save parameters
+      this->Kp = p[0];
+      this->Kd = p[1];
+      this->Ki = p[2];
+      std::cout<<"Twiddle-Hyperparameter =["<< this->Kp << " ; " << this->Kd <<" ; "<< this->Ki << "]"<< std::endl;
+      std::cout<<"Twiddle-d_parameter =["<< this->d_Kp << " ; " << this->d_Kd <<" ; "<< this->d_Ki << "]"<< std::endl;
+
+      this->d_Kp = dp[0];
+      this->d_Kd = dp[1];
+      this->d_Ki = dp[2];
+  }
 }
 
 /*
