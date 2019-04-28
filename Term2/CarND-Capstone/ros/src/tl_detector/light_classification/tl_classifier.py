@@ -37,7 +37,7 @@ def filter_results(min_score, scores, classes):
 
 class TLClassifier(object):
     
-    def __init__(self, is_real=False):       
+    def __init__(self, is_site=False):       
         self.__model_loaded = False
         self.tf_session = None
         self.prediction = None
@@ -47,11 +47,11 @@ class TLClassifier(object):
        # using absolute path since the models are in deep_learning/....
        # If we decide to put the models in 'tl_detector' then we would use the following
 
-        self.load_model(is_real)
+        self.load_model(is_site)
 
-    def load_model(self, is_real):
+    def load_model(self, is_site):
         detect_path = rospkg.RosPack().get_path('tl_detector')
-        if is_real:
+        if is_site:
            self.path_to_model = detect_path + '/light_classification/training/model_sim/inference/frozen_inference_graph.pb'
         else:
            self.path_to_model = detect_path + '/light_classification/training/model_real/inference/frozen_inference_graph.pb'
@@ -85,7 +85,7 @@ class TLClassifier(object):
         self.__model_loaded = True                      
         img = cv2.imread(self.sample_image_path, cv2.IMREAD_COLOR)
         #self.get_classification(img)        
-        #rospy.loginfo("Successfully loaded model, configured placeholders, and ran inference on sample image")
+        rospy.loginfo("Successfully loaded model, configured placeholders, and ran inference on sample image")
 
 
 
@@ -133,6 +133,6 @@ class TLClassifier(object):
             
 if __name__ == '__main__':
     try:
-        TLClassifier(is_real=False)
+        TLClassifier(is_site=False)
     except rospy.ROSInterruptException:
         rospy.logerr('Could not start traffic node.')
