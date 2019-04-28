@@ -57,7 +57,8 @@ class WaypointUpdater(object):
         x = self.pose.pose.position.x
         y = self.pose.pose.position.y
         if self.waypoint_tree == None:
-            return 0
+            rospy.logwarn("Empty Waypoint_Tree")
+            return -1
         
         closest_idx = self.waypoint_tree.query([x,y],1)[1]
 
@@ -129,7 +130,7 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-        #rospy.logwarn("received traffic %s",msg.data)
+        rospy.logwarn("received traffic %s",msg.data)
         self.stopline_wp_idx = msg.data
 
 
