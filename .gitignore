@@ -22,4 +22,7 @@ Term2/term3_sim_windows/*
 **/__MACOSX/*
 Term2/win_sys_int/*
 Term2/CarND-Capstone/log/.ros/log/*
-Term2/traffic_light_bag_file*
+Term2/traffic_light_*
+Term2/CarND-Capstone/dataset/data/*
+Term2/CarND-Capstone/ros/src/tl_detector/light_classification/training/Images/*
+Term2/CarND-Capstone/traffic_light_bag_file*

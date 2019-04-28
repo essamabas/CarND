@@ -52,7 +52,7 @@ class WaypointUpdater(object):
             if self.pose and self.base_waypoints:
                 #Get closest waypoint
                 closest_waypoint_idx = self.get_closest_waypoint_idx()
-                self.publish_waypoints(closest_waypoint_idx)
+                self.publish_waypoints()
             rate.sleep()
 
     def get_closest_waypoint_idx(self):
