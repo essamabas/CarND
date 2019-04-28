@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 
 
-pushd /CarND-Capstone/ros
+pushd /Term2/CarND-Capstone/ros
 
 
 rm -rf /root/.ros/*
-rm -rf /CarND-Capstone/log/*
+rm -rf /Term2/CarND-Capstone/log/*
 
 catkin_make
 source devel/setup.sh
 roslaunch launch/styx.launch
 
-cp -R /root/.ros/ /CarND-Capstone/log
+cp -R /root/.ros/ /Term2/CarND-Capstone/log
 
 popd
