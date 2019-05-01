@@ -1,95 +1,50 @@
-import rospy
-from styx_msgs.msg import TrafficLight
-import rospkg
-import os,sys
-import tensorflow as tf
-import numpy as np
-import time
 import os
+import numpy as np
+import tensorflow as tf
+import time
 import cv2
+import datetime
 
-def load_graph (graph_file):
-    """
-    Loads the frozen inference protobuf file 
-    """
-    graph = tf.Graph()
-    with graph.as_default():
-        od_graph_def = tf.GraphDef()
-        with tf.gfile.GFile(graph_file, 'rb') as fid:
-            serialized_graph = fid.read()
-            od_graph_def.ParseFromString(serialized_graph)
-            tf.import_graph_def(od_graph_def, name='prefix')
-    return graph
+from graph_utils import load_graph
+from PIL import ImageDraw, Image
+from styx_msgs.msg import TrafficLight
 
-
-def filter_results(min_score, scores, classes):
-    """Return tuple (scores, classes) where score[i] >= `min_score`"""
-    n = len(classes)
-    idxs = []
-    for i in range(n):
-        if scores[i] >= min_score:
-            idxs.append(i)
-        
-    filtered_scores = scores[idxs, ...]
-    filtered_classes = classes[idxs, ...]
-    return filtered_scores, filtered_classes
+#import rospy
+#from sensor_msgs.msg import Image as Image_msg
 
 
 class TLClassifier(object):
-    
-    def __init__(self, is_site=False):       
-        self.__model_loaded = False
-        self.tf_session = None
-        self.prediction = None
-        self.sample_image_path = '../../../deep_learning/assets/test_real.png'
-       # ros_root = rospkg.get_ros_root()
-       # Not using the following for now to locate the classification model
-       # using absolute path since the models are in deep_learning/....
-       # If we decide to put the models in 'tl_detector' then we would use the following
+    def __init__(self, is_site):
+        #TODO load classifier
 
-        self.load_model(is_site)
+        sess = None
 
-    def load_model(self, is_site):
-        detect_path = rospkg.RosPack().get_path('tl_detector')
         if is_site:
-           self.path_to_model = detect_path + '/light_classification/training/model_sim/inference/frozen_inference_graph.pb'
+            sess, _ = load_graph('models/real_model.pb')
         else:
-           self.path_to_model = detect_path + '/light_classification/training/model_real/inference/frozen_inference_graph.pb'
-        rospy.loginfo('model going to be loaded from '+self.path_to_model)
+            sess, _ = load_graph('models/sim_model.pb')
 
-        # load the graph using the path to model file
-        # path_to_model has the absolute path
-        self.tf_graph = load_graph(self.path_to_model)
-        self.config = tf.ConfigProto(log_device_placement=False)
-        # GPU video memory usage setup
-        self.config.gpu_options.per_process_gpu_memory_fraction = 0.8  
-        #Setup timeout for any inactive option 
-        self.config.operation_timeout_in_ms = 50000 
-
-        # Declaring our placeholders
-        self.image_tensor = self.tf_graph.get_tensor_by_name('prefix/image_tensor:0')
-
+        self.sess = sess
+        self.sess_graph = self.sess.graph
+        # Definite input and output Tensors for sess
+        self.image_tensor = self.sess_graph.get_tensor_by_name('image_tensor:0')
         # Each box represents a part of the image where a particular object was detected.
-        self.detection_scores = self.tf_graph.get_tensor_by_name('prefix/detection_scores:0')
+        self.detection_boxes = self.sess_graph.get_tensor_by_name('detection_boxes:0')
+        # Each score represent how level of confidence for each of the objects.
+        # Score is shown on the result image, together with the class label.
+        self.detection_scores = self.sess_graph.get_tensor_by_name('detection_scores:0')
+        self.detection_classes = self.sess_graph.get_tensor_by_name('detection_classes:0')
+        self.num_classes = 3
 
-        # Number of predictions found in the image
-        self.num_detections = self.tf_graph.get_tensor_by_name('prefix/num_detections:0')
+        self.category_index = {1: {'id': 1, 'name': u'red'}, 2: {'id': 2, 'name': u'yellow'}, 3: {'id': 3, 'name': u'green'}}
 
-        # Classification of the object (integer id)
-        self.detection_classes = self.tf_graph.get_tensor_by_name('prefix/detection_classes:0')
-
-        with self.tf_graph.as_default():            
-            # tf_start_time = time.time()    
-            self.tf_session = tf.Session(graph=self.tf_graph, config=self.config)        
-
-        self.__model_loaded = True                      
-        img = cv2.imread(self.sample_image_path, cv2.IMREAD_COLOR)
-        #self.get_classification(img)        
-        rospy.loginfo("Successfully loaded model, configured placeholders, and ran inference on sample image")
+        self.image_count = 0
+        self.last_pred = TrafficLight.UNKNOWN
+        self.pub_tl_clssifier_monitor = None
+        self.bridge = None
 
 
-
-    def get_classification(self, image, confidence_cutoff=0.3):
+    def get_classification(self, image, wp = 0):
         """Determines the color of the traffic light in the image
 
         Args:
@@ -98,41 +53,37 @@ class TLClassifier(object):
         Returns:
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
-        """        
-        if not self.__model_loaded:
-            return TrafficLight.UNKNOWN
-        
-        colors = ["RED", "YELLOW", "GREEN"]
-        image_np = np.expand_dims(np.asarray(image, dtype=np.uint8), 0)
+        """
 
-        
-        # Get the scores, classes and number of detections
-        # re-use the session: it is more than 3x faster than creating a new one for every image
-        (scores, classes, num) = self.tf_session.run(
-            [self.detection_scores, self.detection_classes, self.num_detections],
-            feed_dict={self.image_tensor: image_np})
+        cv2_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)        
+        image_np_expanded = np.expand_dims(cv2_image, axis=0)
 
-        # Removing unecessary dimensions
-        scores = np.squeeze(scores)
-        classes = np.squeeze(classes).astype(np.int32)
+        (boxes, scores, classes) = self.sess.run([self.detection_boxes, self.detection_scores, self.detection_classes], feed_dict={self.image_tensor: image_np_expanded})
 
-        # And pruning results below the cutoff
-        final_scores, final_classes = filter_results(confidence_cutoff, scores, classes)
+        prediction = 4
+        min_score_thresh=.6
+        sq_boxes = np.squeeze(boxes)
+        sq_classes = np.squeeze(classes).astype(np.int32)
+        sq_scores = np.squeeze(scores)
 
-        end_time = time.time()
+        for i in range(sq_boxes.shape[0]):
+            if sq_scores is None or sq_scores[i] > min_score_thresh:
+                if sq_classes[i] in self.category_index.keys():
+                    prediction = sq_classes[i]
+                    print("Found traffic light: {ID:%s  color:%s  pred_score:%.4f}"%(prediction, str(self.category_index[sq_classes[i]]['name']), sq_scores[i]))
+                    min_score_thresh = sq_scores[i] 
 
-        if len(final_classes) == 0:
-            rospy.loginfo("*** Predicted color did not make the cut " + colors[classes[0] - 1] + " and score is " + str(scores[0]))     
-            return TrafficLight.UNKNOWN
 
-        #TrafficLight messages have red = 0, yellow = 1, green = 2. 
-        # The model is trained to identify class red = 1, yellow = 2, green = 3. 
-        # Hence, subtracting 1 to match with TrafficLight message spec.
-        rospy.loginfo("Predicted color is " + colors[final_classes[0] - 1] + " and score is " + str(final_scores[0])) 
-        return final_classes[0] - 1      
-            
-if __name__ == '__main__':
-    try:
-        TLClassifier(is_site=False)
-    except rospy.ROSInterruptException:
-        rospy.logerr('Could not start traffic node.')
+        rtn = TrafficLight.UNKNOWN
+
+        if prediction == 1:
+            rtn = TrafficLight.RED
+        elif prediction == 2:
+            rtn = TrafficLight.YELLOW
+        elif prediction == 3:
+            rtn = TrafficLight.GREEN
+
+        self.last_pred = rtn
+        self.image_count += 1
+
+        return rtn

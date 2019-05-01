@@ -1,4 +1,6 @@
 *.pyc
+*.zip
+*.bag
 **/.DS_Store
 **/.vscode
 **/.idea
@@ -31,3 +33,6 @@ Term2/TMP*
 Term2/ros_log*
 Term2/tfmodels/*
 Term2/CarND-Capstone-master/*
+Term2/CarND-Capstone/ros/src/tl_detector/light_classification/training/Traffic-Light-Detection.ipynb
+Term2/CarND-Capstone/ros/src/tl_detector/light_classification/training/dataset/data/*
+Term2/CarND-Capstone/ros/src/tl_detector/light_classification/training/TMP/*
