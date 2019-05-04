@@ -10,7 +10,7 @@ The following is a system architecture diagram showing the ROS nodes and topics 
 ![image alt text](imgs/final-project-ros-graph-v3.png)
 
 
-### Discussion and Outlook
+### Discussion and Limitations
 The car follows the track very well if the hardware is powerful enough. The results video was created on a MacBook Pro with 2,8 GHz Intel Core i7. ROS was executed in the Linux VM from Udacity using VMWare Fusion. The Simulator was executed natively in Mac.
 
 First i did not manage to get the simulator running - as i noticed a delay between ROS and the simulator, which resulted leaving the Track. Refer to: 
@@ -29,38 +29,38 @@ Below is a brief overview of the repo structure, along with descriptions of the 
 This package contains the traffic light detection node.
 ![image alt text](imgs/tl-detector-ros-graph.png)
 
-See Python-Note for the training code in [/training/](https://github.com/essamabas/CarND/tree/master/Term2/CarND-Capstone/tree/master/training/) and inference Model in 
-[/ros/src/tl_detector/](https://github.com/essamabas/CarND/tree/master/Term2/CarND-Capstone/tree/master/ros/src/tl_detector/).
+See Python-Note for the training code in [/training/](https://github.com/essamabas/CarND/tree/master/Term2/CarND-Capstone/training/) and inference Model in 
+[/ros/src/tl_detector/](https://github.com/essamabas/CarND-Capstone/tree/master/ros/src/tl_detector/).
 
 
 #### Waypoint Updater Node
 This package contains the waypoint updater node
 ![image alt text](imgs/waypoint-updater-ros-graph.png)
 
-See code in [/ros/src/waypoint_updater/](https://github.com/essamabas/CarND/tree/master/Term2/CarND-Capstone/tree/master/ros/src/waypoint_updater/).
+See code in [/ros/src/waypoint_updater/](https://github.com/essamabas/CarND-Capstone/tree/master/ros/src/waypoint_updater/).
 
 
 #### Drive By Wire (DBW) Node
 Carla is equipped with a drive-by-wire (dbw) system, meaning the throttle, brake, and steering have electronic control. This package contains the files that are responsible for control of the vehicle
 ![image alt text](imgs/dbw-node-ros-graph.png)
 
-See code in [/ros/src/twist_controller/](https://github.com/essamabas/CarND/tree/master/Term2/CarND-Capstone/tree/master/ros/src/twist_controller/).
+See code in [/ros/src/twist_controller/](https://github.com/essamabas/CarND-Capstone/tree/master/ros/src/twist_controller/).
 
 #### ROS to Simulator Bridge Node
 A package that contains a server for communicating with the simulator, and a bridge to translate and publish simulator messages to ROS topics.
 
-See code in [/ros/src/styx/](https://github.com/essamabas/CarND/tree/master/Term2/CarND-Capstone/tree/master/ros/src/styx/).
+See code in [/ros/src/styx/](https://github.com/essamabas/CarND-Capstone/tree/master/ros/src/styx/).
 
 #### Waypoint Loader Node
 A package which loads the static waypoint data and publishes to */base_waypoints*
 
-See code in [/ros/src/waypoint_loader/](https://github.com/essamabas/CarND/tree/master/Term2/CarND-Capstone/tree/master/ros/src/waypoint_loader/).
+See code in [/ros/src/waypoint_loader/](https://github.com/essamabas/CarND-Capstone/tree/master/ros/src/waypoint_loader/).
 
   
 #### Waypoint Follower Node
 A package containing code from [Autoware](https://github.com/CPFL/Autoware) which subscribes to */final_waypoints* and publishes target vehicle linear and angular velocities in the form of twist commands to the */twist_cmd* topic.
 
-See code in [/ros/src/waypoint_follower/](https://github.com/essamabas/CarND/tree/master/Term2/CarND-Capstone/tree/master/ros/src/waypoint_follower/).
+See code in [/ros/src/waypoint_follower/](https://github.com/essamabas/CarND-Capstone/tree/master/ros/src/waypoint_follower/).
 
 
 
@@ -68,7 +68,7 @@ See code in [/ros/src/waypoint_follower/](https://github.com/essamabas/CarND/tre
 ### Training Steps:
 The main part of the Traffic-Light Detection Node is a Traffic Light Detection and Classifier that has been implemented using
  [Tensor Flow Object Dection API](https://github.com/tensorflow/models/tree/master/research/object_detection).
- More about Trainning-Steps and Integration into the Code - can be found under: [/ros/src/tl_detector/light_classification/training/Traffic-Light-Detection.ipynb](https://github.com/essamabas/CarND/tree/master/Term2/CarND-Capstone/tree/master//ros/src/tl_detector/light_classification/training/Traffic-Light-Detection.ipynb).
+ More about Trainning-Steps and Integration into the Code - can be found under: [/ros/src/tl_detector/light_classification/training/Traffic-Light-Detection.ipynb](https://github.com/essamabas/CarND/tree/master/Term2/CarND-Capstone/ros/src/tl_detector/light_classification/training/Traffic-Light-Detection.ipynb).
 
 
 ### Native Installation
@@ -142,8 +142,30 @@ roslaunch launch/site.launch
 ```
 5. Confirm that traffic light detection works on real life images
 
+### Results:
+
+ Traffic-Light Detection in Simulation:
+
+![image alt text](imgs/output_26_0.png)
+![image alt text](imgs/output_26_1.png)
+
+Traffic-Light Detection in Site:
+
+![image alt text](imgs/output_29_0.png)
+![image alt text](imgs/output_29_1.png)
+
+ More about Trainning-Steps and Integration into the Code - can be found under: [/ros/src/tl_detector/light_classification/training/Traffic-Light-Detection.ipynb](https://github.com/essamabas/CarND/tree/master/Term2/CarND-Capstone/ros/src/tl_detector/light_classification/training/Traffic-Light-Detection.ipynb).
+
+ A simulation-video can be found under: [/video](https://github.com/essamabas/CarND/tree/master/Term2/CarND-Capstone/video)
+
+[![Visual Car On the Track Video](imgs/unity.png)](https://youtu.be/z7K150JBg9U)
+
 ### Tips:
 
+
+ As mentioned in [Issue-294](https://github.com/udacity/CarND-Capstone/issues/294).
+ There is a performance Issue in Simulator and ROS-Nodes that prevented /current-pose to sent on time; thus - the Car may get off-track, if there are no points to follow.
+ 
 1. Catkin Packages not found
 
     ```bash
@@ -192,7 +214,7 @@ roslaunch launch/site.launch
       ```
 
       
-    	• Use this option to install the SDK on a workstation that already has ROS installed: [One Line SDK Install (binary)](https://bitbucket.org/DataspeedInc/dbw_mkz_ros/src/81e63fcc335d7b64139d7482017d6a97b405e250/ROS_SETUP.md?fileviewer=file-view-default)
+    	• Use this option to install the SDK on a workstation that already has ROS installed: [One Line SDK Install (binary)](https://bitbucket.org/DataspeedInc/dbw_mkz_ros/src/81e63fcc335d7b64139d7482017d6a97b405e250/ROS_SETUP.md?fileviewer=file-view-default)
 
       • Install dbw-mks-msgs:
       ```bash
@@ -213,5 +235,5 @@ roslaunch launch/site.launch
 
       Just Upgrade Pillow-Package
       ```bash
-       pip install pillow --upgrade
+       pip install pillow --upgrade
       ```
