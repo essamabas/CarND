@@ -67,7 +67,7 @@ class TLDetector(object):
 
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
 
-        detector_rate = rospy.Rate(3)
+        detector_rate = rospy.Rate(5)
         while not rospy.is_shutdown():
             self.find_traffic_lights()
             detector_rate.sleep()
@@ -136,8 +136,6 @@ class TLDetector(object):
             else:
                 self.upcoming_red_light_pub.publish(Int32(self.last_wp))
             self.state_count += 1
-
-        self.has_image == False
 
     def get_closest_waypoint(self, x, y):
         """Identifies the closest path waypoint to the given position
