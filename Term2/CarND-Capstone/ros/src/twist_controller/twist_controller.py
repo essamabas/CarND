@@ -25,9 +25,9 @@ class Controller(object):
         self.yaw_controller = YawController(wheel_base, steer_ratio, self.min_vel, max_lat_accel, max_steer_angle)
 
         # Coefficients for PID Controller
-        p = 0.5
-        i = 0.1
-        d = 0.1
+        p = 0.2
+        i = 0.0001
+        d = 0.001
 
         min_throttle = 0.
         max_throttle = 0.2
@@ -68,8 +68,9 @@ class Controller(object):
         if linear_vel == 0. and vel < self.min_vel:
             throttle = 0.
             brake = 700
-        elif throttle < 0.1 and vel_error < 0:
-            throttle = 0.
+            steering = 0.
+        elif throttle < .1 and vel_error < 0:
+            throttle = 0
             decel = max(vel_error, self.decel_limit)
             brake = abs(decel) * self.vehicle_mass * self.wheel_radius
             if brake < 700.:
